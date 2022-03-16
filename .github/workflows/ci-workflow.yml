@@ -1,0 +1,104 @@
+name: Compilation & tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+
+jobs:
+  job_build_nano_s:
+    name: Build Nano S
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Build plugin for Nano S
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOS_SDK
+
+  job_build_nano_x:
+    name: Build Nano X
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build plugin for Nano X
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOX_SDK
+
+  job_build_debug:
+    name: Build debug plugins
+    needs: [job_build_nano_s, job_build_nano_x]
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Build plugins for testing
+        run: |
+          cd tests
+          sh build_local_test_elfs.sh
+      - name: Cache plugin
+        uses: actions/cache@v1
+        with:
+          path: ./tests/elfs
+          key: ${{ runner.os }}-${{ github.run_id }}-plugins
+
+  jobs-e2e-tests:
+    name: E2E Tests
+    needs: [job_build_debug]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: |
+          id
+          echo $HOME
+          echo $DISPLAY
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Remove default efls
+        run: |
+          rm -fr ./tests/elfs
+      - name: Restore built plugins
+        uses: actions/cache@v1
+        with:
+          path: ./tests/elfs
+          key: ${{ runner.os }}-${{ github.run_id }}-plugins
+      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14.4.0"
+      - name: Install yarn
+        run: |
+          npm install -g yarn
+      - name: Build/Install build js deps
+        run: |
+          cd tests && yarn install
+      - name: Run zemu tests
+        run: |
+          cd tests && yarn test
