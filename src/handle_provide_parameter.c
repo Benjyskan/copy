@@ -38,7 +38,6 @@ void copy_offset(ethPluginProvideParameter_t *msg, context_t *context) {
     PRINTF("msg->parameterOffset: %d\n", msg->parameterOffset);
     uint32_t test = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
     PRINTF("U4BE msg->parameter: %d\n", test);
-    // context->next_offset = test + msg->parameterOffset;
     context->next_offset = test + context->current_tuple_offset;
     PRINTF("copied offset: %d\n", context->next_offset);
 }
@@ -46,15 +45,10 @@ void copy_offset(ethPluginProvideParameter_t *msg, context_t *context) {
 static void parse_order(ethPluginProvideParameter_t *msg, context_t *context) {
     PRINTF("PARSING ORDER\n");
     switch ((order) context->next_param) {
-        case ORDER__START:
-            PRINTF("parse ORDER__START\n");
-            break;
-        case ORDER__OFFSET_OPERATOR:
-            PRINTF("parse ORDER__OFFSET_OPERATOR\n");
-            break;
         case ORDER__OPERATOR:
             PRINTF("parse ORDER__OPERATOR\n");
             context->current_tuple_offset = msg->parameterOffset;
+            PRINTF("NEW current_tuple_offset: %d\n", context->current_tuple_offset);
             break;
         case ORDER__TOKEN_ADDRESS:
             PRINTF("parse ORDER__TOKEN_ADDRESS\n");
@@ -74,16 +68,8 @@ static void parse_order(ethPluginProvideParameter_t *msg, context_t *context) {
 }
 
 static void parse_batched_input_orders(ethPluginProvideParameter_t *msg, context_t *context) {
-    // if (context->on_struct == S_ORDER) {
-    //     parse_order(msg, context);
-    //     return;
-    // }
-    PRINTF("PARSING BIO\n");
+    PRINTF("PARSING BIO step; %d\n", context->next_param);
     switch ((batch_input_orders) context->next_param) {
-        case BIO__OFFSET_INPUTTOKEN:
-            PRINTF("parse BIO__OFFSET_INPUTTOKEN\n");
-            copy_offset(msg, context);  // osef
-            break;
         case BIO__INPUTTOKEN:
             PRINTF("parse BIO__INPUTTOKEN\n");
             context->current_tuple_offset = msg->parameterOffset;
@@ -100,10 +86,26 @@ static void parse_batched_input_orders(ethPluginProvideParameter_t *msg, context
             break;
         case BIO__LEN_ORDERS:
             PRINTF("parse BIO__LEN_ORDERS\n");
-            context->on_struct = (on_struct) S_ORDER;
-            context->next_param = (batch_input_orders) ORDER__START;
             context->current_length = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
+            context->length_offset_array = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
             PRINTF("current_length: %d\n", context->current_length);
+            break;
+        case BIO__OFFSET_ARRAY_ORDERS:
+            context->length_offset_array--;
+            PRINTF("parse BIO__OFFSET_ARRAY_ORDERS, index: %d\n", context->length_offset_array);
+            if (context->length_offset_array < 2) {
+                context->offsets_lvl1[context->length_offset_array] =
+                    U4BE(msg->parameter, PARAMETER_LENGTH - 4);
+                PRINTF("offsets_lvl1[%d]: %d\n",
+                       context->length_offset_array,
+                       context->offsets_lvl1[context->length_offset_array]);
+            }
+            if (context->length_offset_array == 0) {
+                PRINTF("parse BIO__OFFSET_ARRAY_ORDERS LAST\n");
+                context->on_struct = (on_struct) S_ORDER;
+                context->next_param = (batch_input_orders) ORDER__OPERATOR;
+            }
+            return;
             break;
         default:
             break;
@@ -111,14 +113,20 @@ static void parse_batched_input_orders(ethPluginProvideParameter_t *msg, context
     context->next_param++;
 }
 
+// static void parse_length(uint8_t depth,
+//                          array_length,
+//                          ethPluginProvideParameter_t *msg,
+//                          context_t *context) {
+// }
+
 static void handle_create(ethPluginProvideParameter_t *msg, context_t *context) {
     if (context->on_struct) {
         switch (context->on_struct) {
             case S_BATCHED_INPUT_ORDERS:
                 parse_batched_input_orders(msg, context);
                 break;
-            case S_BATCHED_OUTPUT_ORDERS:
-                break;
+            // case S_BATCHED_OUTPUT_ORDERS:
+            //     break;
             case S_ORDER:
                 parse_order(msg, context);
                 break;
@@ -132,14 +140,30 @@ static void handle_create(ethPluginProvideParameter_t *msg, context_t *context) 
             break;
         case CREATE__OFFSET_BATCHINPUTORDER:
             PRINTF("CREATE__OFFSET_BATCHINPUTORDER\n");
-            copy_offset(msg, context);
+            copy_offset(msg, context);  // osef
             break;
         case CREATE__LEN_BATCHINPUTORDER:
             PRINTF("CREATE__LEN_BATCHINPUTORDER\n");
-            context->on_struct = (on_struct) S_BATCHED_INPUT_ORDERS;
-            context->next_param = (batch_input_orders) BIO__START;
             context->current_length = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
+            context->length_offset_array = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
             PRINTF("current_length: %d\n", context->current_length);
+            break;
+        case CREATE__OFFSET_ARRAY_BATCHINPUTORDER:
+            context->length_offset_array--;
+            PRINTF("CREATE__OFFSET_ARRAY_BATCHINPUTORDER, index: %d\n",
+                   context->length_offset_array);
+            if (context->length_offset_array < 2) {
+                context->offsets_lvl0[context->length_offset_array] =
+                    U4BE(msg->parameter, PARAMETER_LENGTH - 4);
+                PRINTF("offsets_lvl0[%d]: %d\n",
+                       context->length_offset_array,
+                       context->offsets_lvl0[context->length_offset_array]);
+            }
+            if (context->length_offset_array == 0) {
+                context->on_struct = (on_struct) S_BATCHED_INPUT_ORDERS;
+                context->next_param = (batch_input_orders) BIO__INPUTTOKEN;
+            }
+            return;
             break;
         case CREATE__BATCH_INPUT_ORDERS:
             PRINTF("NOP NOP CREATE__BATCH_INPUT_ORDERS\n");
@@ -163,10 +187,6 @@ void handle_provide_parameter(void *parameters) {
            msg->parameterOffset,
            PARAMETER_LENGTH,
            msg->parameter);
-
-    // PRINTF(" \033[0m", msg->parameter);
-    // print_bytes(msg->parameter, PARAMETER_LENGTH);
-    // PRINTF("\033[0m\n");
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 

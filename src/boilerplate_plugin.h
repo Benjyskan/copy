@@ -20,8 +20,6 @@ typedef enum {
 */
 
 typedef enum {
-    ORDER__START,
-    ORDER__OFFSET_OPERATOR,
     ORDER__OPERATOR,
     ORDER__TOKEN_ADDRESS,
     ORDER__OFFSET_CALLDATA,
@@ -30,18 +28,15 @@ typedef enum {
 } order;
 
 typedef enum {
-    BIO__START,
-    BIO__OFFSET_INPUTTOKEN,
     BIO__INPUTTOKEN,
     BIO__AMOUNT,
     BIO__OFFSET_ORDERS,
     BIO__FROM_RESERVE,
     BIO__LEN_ORDERS,
+    BIO__OFFSET_ARRAY_ORDERS
 } batch_input_orders;
 
 typedef enum {
-    BOO__START,
-    BOO__OFFSET_INPUTTOKEN,
     BOO__INPUTTOKEN,
     BOO__OFFSET_AMOUNTS,
     BOO__OFFSET_ORDERS,
@@ -49,6 +44,7 @@ typedef enum {
     BOO__LEN_AMOUNTS,
     BOO__AMOUNT,
     BOO__LEN_ORDERS,
+    BOO__OFFSET_ARRAY_ORDERS
 } batch_output_orders;
 
 /* Parsing */
@@ -67,6 +63,7 @@ typedef enum {
     CREATE__TOKEN_ID,
     CREATE__OFFSET_BATCHINPUTORDER,
     CREATE__LEN_BATCHINPUTORDER,
+    CREATE__OFFSET_ARRAY_BATCHINPUTORDER,
     CREATE__BATCH_INPUT_ORDERS,
 } create_parameter;
 
@@ -97,6 +94,10 @@ typedef struct context_t {
 
     uint32_t next_offset;
     uint16_t current_length;
+
+    uint16_t offsets_lvl0[2];
+    uint16_t offsets_lvl1[2];
+    uint8_t length_offset_array;
 
     // For both parsing and display.
     selector_t selectorIndex;
