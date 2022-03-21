@@ -8,6 +8,7 @@ void handle_provide_token(void *parameters) {
     context_t *context = (context_t *) msg->pluginContext;
 
     if (msg->item1) {
+        PRINTF("PENZO item1\n");
         // The Ethereum App found the information for the requested token!
         // Store its decimals.
         context->decimals = msg->item1->token.decimals;
@@ -17,6 +18,7 @@ void handle_provide_token(void *parameters) {
         // Keep track that we found the token.
         context->token_found = true;
     } else {
+        PRINTF("PENZO no item1\n");
         // The Ethereum App did not manage to find the info for the requested token.
         context->token_found = false;
 

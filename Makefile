@@ -22,7 +22,7 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 # EDIT THIS: Put your plugin name
-APPNAME = "Boilerplate"
+APPNAME = "Nested"
 
 APP_LOAD_PARAMS += --appFlags 0x800 --path "44'/60'" --curve secp256k1
 
@@ -146,4 +146,4 @@ dep/%.d: %.c Makefile
 
 listvariants:
         # EDIT THIS: replace `boilerplate` by the lowercase name of your plugin
-	@echo VARIANTS NONE boilerplate
+	@echo VARIANTS NONE nested
