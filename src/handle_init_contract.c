@@ -1,4 +1,4 @@
-#include "boilerplate_plugin.h"
+#include "nested_plugin.h"
 
 static int find_selector(uint32_t selector, const uint32_t *selectors, size_t n, selector_t *out) {
     for (selector_t i = 0; i < n; i++) {
@@ -43,11 +43,13 @@ void handle_init_contract(void *parameters) {
     }
 
     // Set `next_param` to be the first field we expect to parse.
-    // EDIT THIS: Adapt the `cases`, and set the `next_param` to be the first parameter you expect
-    // to parse.
     switch (context->selectorIndex) {
         case CREATE:
-            PRINTF("PENZO IN CREATE\n");
+            PRINTF("IN CREATE\n");
+            context->next_param = CREATE__TOKEN_ID;
+            break;
+        case PROCESS_OUTPUT_ORDERS:
+            PRINTF("IN PROCESS_OUTPUT_ORDERS\n");
             context->next_param = CREATE__TOKEN_ID;
             break;
         // Keep this

@@ -1,4 +1,4 @@
-#include "boilerplate_plugin.h"
+#include "nested_plugin.h"
 #include "text.h"
 
 // Sets the first screen to display.
@@ -12,7 +12,11 @@ void handle_query_contract_id(void *parameters) {
     strlcpy(msg->name, PLUGIN_NAME, msg->nameLength);
 
     if (context->selectorIndex == CREATE) {
-        strlcpy(msg->version, "Create", msg->versionLength);
+        PRINTF("context->booleans & IS_COPY: %d\n", context->booleans & IS_COPY);
+        if (context->booleans & IS_COPY)
+            strlcpy(msg->version, "Copy", msg->versionLength);
+        else
+            strlcpy(msg->version, "Create", msg->versionLength);
         msg->result = ETH_PLUGIN_RESULT_OK;
     } else {
         PRINTF("Selector index: %d not supported\n", context->selectorIndex);

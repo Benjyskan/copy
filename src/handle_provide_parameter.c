@@ -1,38 +1,4 @@
-#include "boilerplate_plugin.h"
-
-static const char G_HEX[] = {
-    '0',
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    'a',
-    'b',
-    'c',
-    'd',
-    'e',
-    'f',
-};
-
-void print_bytes(const uint8_t *bytes, uint16_t len) {
-    unsigned char nibble1, nibble2;
-    char str[] = {0, 0, 0};
-
-    for (uint16_t count = 0; count < len; count++) {
-        nibble1 = (bytes[count] >> 4) & 0xF;
-        nibble2 = bytes[count] & 0xF;
-        str[0] = G_HEX[nibble1];
-        str[1] = G_HEX[nibble2];
-        PRINTF("%s", str);
-        PRINTF(" ");
-    }
-    PRINTF("\n");
-}
+#include "nested_plugin.h"
 
 void copy_offset(ethPluginProvideParameter_t *msg, context_t *context) {
     PRINTF("msg->parameterOffset: %d\n", msg->parameterOffset);
@@ -113,12 +79,6 @@ static void parse_batched_input_orders(ethPluginProvideParameter_t *msg, context
     context->next_param++;
 }
 
-// static void parse_length(uint8_t depth,
-//                          array_length,
-//                          ethPluginProvideParameter_t *msg,
-//                          context_t *context) {
-// }
-
 static void handle_create(ethPluginProvideParameter_t *msg, context_t *context) {
     if (context->on_struct) {
         switch (context->on_struct) {
@@ -137,6 +97,13 @@ static void handle_create(ethPluginProvideParameter_t *msg, context_t *context) 
     switch ((create_parameter) context->next_param) {
         case CREATE__TOKEN_ID:
             PRINTF("CREATE__TOKEN_ID\n");
+            for (uint8_t i = 0; i < PARAMETER_LENGTH; i++) {
+                if (msg->parameter[i] != 0) {
+                    PRINTF("IS NOT 0\n");
+                    context->booleans |= IS_COPY;
+                    break;
+                }
+            }
             break;
         case CREATE__OFFSET_BATCHINPUTORDER:
             PRINTF("CREATE__OFFSET_BATCHINPUTORDER\n");
@@ -190,7 +157,6 @@ void handle_provide_parameter(void *parameters) {
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 
-    // EDIT THIS: adapt the cases and the names of the functions.
     switch (context->selectorIndex) {
         case CREATE:
             handle_create(msg, context);

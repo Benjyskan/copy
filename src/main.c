@@ -22,15 +22,17 @@
 #include "os.h"
 #include "cx.h"
 
-#include "boilerplate_plugin.h"
+#include "nested_plugin.h"
 
 // List of selectors supported by this plugin.
 static const uint32_t CREATE_SELECTOR = 0xa378534b;
+static const uint32_t PROCESS_OUTPUT_ORDERS_SELECTOR = 0x51227094;
 
 // Array of all the different boilerplate selectors. Make sure this follows the same order as the
-// enum defined in `boilerplate_plugin.h`
+// enum defined in `nested_plugin.h`
 const uint32_t NESTED_SELECTORS[NUM_SELECTORS] = {
     CREATE_SELECTOR,
+    PROCESS_OUTPUT_ORDERS_SELECTOR,
 };
 
 // Function to dispatch calls from the ethereum app.
